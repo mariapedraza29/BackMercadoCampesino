@@ -1,18 +1,15 @@
 ﻿using MercadoCampesinoo.Modelos;
-using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Data;
-using System.Data.SqlClient;
 
-namespace MercadoCampesino.Controllers
+namespace MercadoCampesinoo.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ClienteController : ControllerBase
+    public class EventoController : ControllerBase
     {
         private readonly string cadenaSQL;
-        public ClienteController(IConfiguration config)
+        public EventoController(IConfiguration config)
         {
             cadenaSQL = config.GetConnectionString("CadenaSql");
         }
@@ -20,29 +17,25 @@ namespace MercadoCampesino.Controllers
         [Route("Lista")]
         public IActionResult Lista()
         {
-            List<Cliente> lista = new List<Cliente>();
+            List<Evento> lista = new List<Evento>();
             try
             {
                 using (var conexion = new SqlConnection(cadenaSQL))
 
                 {
                     conexion.Open();
-                    var cmd = new SqlCommand("sp_listar_Cliente", conexion);
+                    var cmd = new SqlCommand("SP_LISTAR_EVENTO", conexion);
                     cmd.CommandType = CommandType.StoredProcedure;
                     using (var rd = cmd.ExecuteReader())
                     {
                         while (rd.Read())
                         {
-                            lista.Add(new Cliente
+                            lista.Add(new Evento
                             {
-                                idCliente = Convert.ToInt32(rd["id_cliente"]),
-                                nombre = rd["nombre"].ToString(),
-                                apellido = rd["apellido"].ToString(),
-                                fechaNacimiento = Convert.ToDateTime(rd["apellido"]),
-                                telefono = rd["Telefono"].ToString(),
-                                correo = rd["correo"].ToString(),
-                                direccion = rd["direccion"].ToString(),
-                                contraseña = rd["contraseña"].ToString() ?? "undefined"
+                                idEvento = Convert.ToInt32(rd["ID_EVENTO"]),
+                                nombre = rd["NOMBRE"].ToString(),
+                                descripcion = rd["DESCRIPCION"].ToString(),
+                                tipo = rd["TIPO"].ToString(),
                             });
                         }
                     }
@@ -59,30 +52,29 @@ namespace MercadoCampesino.Controllers
         [Route("obtener/{idPersona:int}")]
         public IActionResult Obtener(int idPersona)
         {
-            List<Cliente> lista = new List<Cliente>();
-            Cliente cliente = new Cliente();
+            List<Persona> lista = new List<Persona>();
+            Persona persona = new Persona();
 
             try
             {
                 using (var conexion = new SqlConnection(cadenaSQL))
                 {
                     conexion.Open();
-                    var cmd = new SqlCommand("SP_LISTAR_CLIENTE", conexion);
+                    var cmd = new SqlCommand("sp_listarPersona", conexion);
                     cmd.CommandType = CommandType.StoredProcedure;
                     using (var rd = cmd.ExecuteReader())
                     {
                         while (rd.Read())
                         {
-                            lista.Add(new Cliente
+                            lista.Add(new Persona
                             {
-                                idCliente = Convert.ToInt32(rd["ID_CLIENTE"]),
-                                nombre = rd["NOMBRE"].ToString(),
-                                apellido = rd["APELLIDO"].ToString(),
-                                fechaNacimiento = Convert.ToDateTime(rd["FECHA_NACIMIENTO"]),
-                                telefono = rd["UBICACION"].ToString(),
-                                correo = rd["CORREO"].ToString(),
-                                contraseña = rd["CONTRASENA"].ToString(),
-                                direccion = rd["DIRECCION"].ToString()
+                                idPersona = Convert.ToInt32(rd["idPersona"]),
+                                nombre = rd["nombre"].ToString(),
+                                apellido = rd["apellido"].ToString(),
+                                edad = Convert.ToInt32(rd["edad"]),
+                                ubicacion = rd["ubicacion"].ToString(),
+                                correo = rd["correo"].ToString(),
+                                fechaNacimiento = Convert.ToDateTime(rd["fechaNacimiento"])
                             });
                         }
                     }
@@ -95,25 +87,49 @@ namespace MercadoCampesino.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = error.Message, Response = persona });
             }
         }
-        [HttpPut]
-        [Route("Editar")]
-
-        public IActionResult Editar([FromBody] Cliente objeto)
+        [HttpPost]
+        [Route("Registrar")]
+        public IActionResult Registrar([FromBody] Persona objeto)
         {
             try
             {
                 using (var conexion = new SqlConnection(cadenaSQL))
                 {
                     conexion.Open();
-                    var cmd = new SqlCommand("SP_EDITAR_CLIENTE", conexion);
-                    cmd.Parameters.AddWithValue("ID_CLIENTE", objeto.idCliente == 0 ? DBNull.Value : objeto.idCliente);
+                    var cmd = new SqlCommand("sp_ingresarPersona", conexion);
+                    cmd.Parameters.AddWithValue("idPersona", objeto.idPersona);
+                    cmd.Parameters.AddWithValue("nombre", objeto.nombre);
+                    cmd.Parameters.AddWithValue("apellido", objeto.apellido);
+                    cmd.Parameters.AddWithValue("edad", objeto.edad);
+                    cmd.Parameters.AddWithValue("ubicacion", objeto.ubicacion);
+                    cmd.Parameters.AddWithValue("correo", objeto.correo);
+                    cmd.Parameters.AddWithValue("fechaNacimiento", objeto.fechaNacimiento);
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.ExecuteNonQuery();
+                }
+                return StatusCode(StatusCodes.Status200OK, new { mensaje = "registrado" });
+
+            }
+            catch (Exception error)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { mensaje = error.Message });
+            }
+        }
+        [HttpPut]
+        [Route("Editar")]
+
+        public IActionResult Editar([FromBody] Evento objeto)
+        {
+            try
+            {
+                using (var conexion = new SqlConnection(cadenaSQL))
+                {
+                    conexion.Open();
+                    var cmd = new SqlCommand("SP_EDITAR_EVENTO", conexion);
+                    cmd.Parameters.AddWithValue("ID_EVENTO", objeto.idEvento == 0 ? DBNull.Value : objeto.idEvento);
                     cmd.Parameters.AddWithValue("NOMBRE", objeto.nombre is null ? DBNull.Value : objeto.nombre);
-                    cmd.Parameters.AddWithValue("APELLIDO", objeto.apellido is null ? DBNull.Value : objeto.apellido);
-                    cmd.Parameters.AddWithValue("FECHA_NACIMIENTO", objeto.fechaNacimiento is default ? DBNull.Value : objeto.fechaNacimiento);
-                    cmd.Parameters.AddWithValue("TELEFONO", objeto.telefono is null ? DBNull.Value : objeto.telefono);
-                    cmd.Parameters.AddWithValue("CORREO", objeto.correo is null ? DBNull.Value : objeto.correo);
-                    cmd.Parameters.AddWithValue("CONTRASEÑA", objeto.contraseña is null ? DBNull.Value : objeto.contraseña);
-                    cmd.Parameters.AddWithValue("DIRECCION", objeto.direccion is null ? DBNull.Value : objeto.direccion);
+                    cmd.Parameters.AddWithValue("DESCRIPCION", objeto.descripcion is null ? DBNull.Value : objeto.descripcion);
+                    cmd.Parameters.AddWithValue("TIPO", objeto.tipo is null ? DBNull.Value : objeto.tipo);
                 }
                 return StatusCode(StatusCodes.Status200OK, new { mensage = "editado" });
             }
@@ -123,8 +139,8 @@ namespace MercadoCampesino.Controllers
             }
         }
         [HttpDelete]
-        [Route("Eliminar/{id_Cliente:int}")]
-        public IActionResult Eliminar(int id_Cliente)
+        [Route("Eliminar/{ID_EVENTO:int}")]
+        public IActionResult Eliminar(int idEvento)
         {
             try
             {
@@ -132,7 +148,7 @@ namespace MercadoCampesino.Controllers
                 {
                     conexion.Open();
                     var cmd = new SqlCommand("SP_ELIMINAR_CLIENTE", conexion);
-                    cmd.Parameters.AddWithValue("ID_CLIENTE", id_Cliente);
+                    cmd.Parameters.AddWithValue("ID_EVENTO", idEvento);
                     cmd.CommandType = CommandType.StoredProcedure;
                     cmd.ExecuteNonQuery();
                 }
@@ -145,4 +161,3 @@ namespace MercadoCampesino.Controllers
         }
     }
 }
-
