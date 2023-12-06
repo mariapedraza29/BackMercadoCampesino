@@ -1,6 +1,6 @@
 ﻿namespace MercadoCampesinoo.Modelos
 {
-    public class Cliente
+    public class Cliente(string correo, string contraseña)
     {
         public int idCliente { get; set; }
         public string nombre { get; set; }
